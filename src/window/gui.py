@@ -1,25 +1,35 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QToolTip, QMainWindow, QMenuBar, QMenu, QAction, QDockWidget, QTextEdit, QWidget, QHBoxLayout, QVBoxLayout, QDialog, QLabel, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QDockWidget, QTextEdit, QWidget, QHBoxLayout, QVBoxLayout, QDialog, QLabel, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPainter, QMouseEvent
 from PyQt5.QtChart import QChart, QChartView
+from .login import verify_login
 
 
-# class ChartView(QChartView):
-#     def __init__(self, chart, parent=None):
-#         super().__init__(chart, parent)
-#         self.setMouseTracking(True)
+from ..twelvedata_api.stocks_in_time import get_stock_information
 
-#     def mouseMoveEvent(self, event: QMouseEvent):
-#         pos = event.pos()
-#         point = self.chart().mapToValue(pos)
-#         x = point.x()
-#         y = point.y()
-#         if self.chart().series():
-#             series = self.chart().series()[0]
-#             for i in range(series.count()):
-#                 if series.at(i).x() == x and series.at(i).y() == y:
-#                     QToolTip.showText(event.globalPos(), f"Value: {y}")
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
+class ChartWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
+
+    def update_chart(self, df):
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        ax.plot(df['close'])
+        ax.set_title("TITLE")
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Price')
+        self.canvas.draw()
 
 
 class LoginDialog(QDialog):
@@ -59,10 +69,12 @@ class LoginDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.df = get_stock_information(symbol="AMD",start_date="04/28/2023", end_date="05/25/2023")
         self.init_apperance()
         self.create_menu()
         self.create_user_panel()
         self.create_central_widget()
+        
 
     def init_apperance(self):
         self.setWindowTitle("Stock Market App")
@@ -99,13 +111,13 @@ class MainWindow(QMainWindow):
         central_layout.addWidget(graph_label)
         self.setCentralWidget(central_widget)
 
-    def show_login_dialog(self):
-        dialog = LoginDialog()
-        if dialog.exec_() == QDialog.Accepted:
-            dialog.get_login()
-            dialog.get_password()
-            #self.open_new_window(login, password)
-            dialog.verify()
+    # def show_login_dialog(self):
+    #     dialog = LoginDialog()
+    #     if dialog.exec_() == QDialog.Accepted:
+    #         dialog.get_login()
+    #         dialog.get_password()
+    #         #self.open_new_window(login, password)
+    #         dialog.verify()
     
 
     def open_new_window(self, login, password):
@@ -120,68 +132,20 @@ class MainWindow(QMainWindow):
         self.user_label = QTextEdit("You have been logged out")
         self.user_layout.addWidget(self.user_label)
 
+    def create_chart_widget(self):
+        self.chart_widget = ChartWidget()
+        self.chart_widget.update_chart(self.df)
+        self.setCentralWidget(self.chart_widget)
 
+    def create_central_widget(self):
+        self.setCentralWidget(None)  # Remove previous central widget
+        self.create_chart_widget()
 
-import sqlite3
-import hashlib
-import os
-
-# def verify_password(stored_password, provided_password, salt):
-#     print(f'stored password {stored_password}, provided password {provided_password}, salt {salt}')
-#     hashed_provided_password = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'), salt.encode('utf-8'), 100000)
-#     print(hashed_provided_password.hex(), stored_password)
-#     return stored_password == hashed_provided_password.hex()
-
-from passlib.hash import pbkdf2_sha256
-
-import hashlib
-
-def verify_password(stored_password, provided_password, salt):
-    print(salt)
-    password = provided_password.encode('utf-8')
-    salt_bytes = salt.encode('utf-8')
-    # Hash the provided password with the given salt
-    hashed_provided_password = pbkdf2_sha256.hash(password, salt=salt_bytes, rounds=100000)
-    print(hashed_provided_password, stored_password)
-    return stored_password == hashed_provided_password
-
-
-def verify_login(username, password):
-    conn = sqlite3.connect('src/database/users.db')
-    cursor = conn.cursor()
-
-    query = "SELECT password, salt FROM users WHERE username = ?"
-    cursor.execute(query, (username,))
-    result = cursor.fetchone()
-
-    conn.close()
-
-    if result:
-        stored_password, salt = result
-        return verify_password(stored_password, password, salt)
-
-    return False
-
-
-def print_users_table():
-    conn = sqlite3.connect('src/database/users.db')
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM users")
-    rows = cursor.fetchall()
-    for row in rows:
-        print(row)
-
-    conn.close()
-
-
-username = "user1"
-password = "password1"
-
-login_result = verify_login(username, password)
-print(login_result)
-if login_result:
-    print("Login successful")
-else:
-    print("Invalid username or password")
-
+    def show_login_dialog(self):
+        dialog = LoginDialog()
+        if dialog.exec_() == QDialog.Accepted:
+            dialog.get_login()
+            dialog.get_password()
+            dialog.verify()
+            if dialog.is_verified():  # Assuming you have a method to check if login is verified
+                self.create_central_widget()  # Update the chart widget after successful login

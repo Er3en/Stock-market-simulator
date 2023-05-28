@@ -1,1 +1,0 @@
-# TODO Add here methods for pd data taken from api, then to create charts and display it in the app
