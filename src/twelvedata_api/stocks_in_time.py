@@ -39,6 +39,6 @@ def get_stock_information(symbol=None, start_date=None, end_date=None):
     # plt.xlabel('Time')
     # plt.ylabel('Price')
     # plt.show()
-    return df
+    return df, symbol
 
-get_stock_information(symbol="AMD",start_date="04/28/2023", end_date="05/25/2023")
+#get_stock_information(symbol="AMD",start_date="04/28/2023", end_date="05/25/2023")

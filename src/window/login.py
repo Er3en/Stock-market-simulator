@@ -4,12 +4,14 @@ import sqlite3
 
 
 def verify_password(stored_password, provided_password, salt):
-    print(salt)
     password = provided_password.encode('utf-8')
     salt_bytes = salt.encode('utf-8')
     # Hash the provided password with the given salt
     hashed_provided_password = pbkdf2_sha256.hash(password, salt=salt_bytes, rounds=100000)
-    print(hashed_provided_password, stored_password)
+    if hashed_provided_password == stored_password:
+        print("Sucessful login")
+    else:
+        print("Password doesn't match")
     return stored_password == hashed_provided_password
 
 
