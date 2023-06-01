@@ -1,18 +1,21 @@
 from passlib.hash import pbkdf2_sha256
 import hashlib
 import sqlite3
+from ..user.user import User
 
-
-def verify_password(stored_password, provided_password, salt):
+def verify_password(username, stored_password, provided_password, salt):
     password = provided_password.encode('utf-8')
     salt_bytes = salt.encode('utf-8')
     # Hash the provided password with the given salt
     hashed_provided_password = pbkdf2_sha256.hash(password, salt=salt_bytes, rounds=100000)
     if hashed_provided_password == stored_password:
         print("Sucessful login")
+        user = User(username, provided_password) 
+        return True, user
     else:
-        print("Password doesn't match")
-    return stored_password == hashed_provided_password
+        user = None
+        return False
+
 
 
 def verify_login(username, password):
@@ -27,7 +30,7 @@ def verify_login(username, password):
 
     if result:
         stored_password, salt = result
-        return verify_password(stored_password, password, salt)
+        return verify_password(username, stored_password, password, salt)
 
     return False
 

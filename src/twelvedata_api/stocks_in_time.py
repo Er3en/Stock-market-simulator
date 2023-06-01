@@ -17,28 +17,21 @@ def calculate_days(start_date, end_date):
 def get_stock_information(symbol=None, start_date=None, end_date=None):
     # Initialize client - apikey parameter is requiered
     td = TDClient(apikey=API_KEY)
+    try:
+        # Construct the necessary time series
+        ts = td.time_series(
+            symbol=symbol,
+            interval="1day",
+            outputsize=f"{calculate_days(start_date, end_date)}",
+            type="stock",
+            timezone="Europe/Warsaw",
+            start_date=start_date,
+            end_date=end_date
+        )
 
-    # Construct the necessary time series
-    ts = td.time_series(
-        symbol=symbol,
-        interval="1day",
-        outputsize=f"{calculate_days(start_date, end_date)}",
-        type="stock",
-        timezone="Europe/Warsaw",
-        start_date=start_date,
-        end_date=end_date
-    )
+        df = ts.as_pandas() 
+    except Exception as e:
+         print("An error occurred while retrieving the time series:", str(e))
 
-    # Returns pandas.DataFrame
-    df = ts.as_pandas() 
-    # print(df)
-    # print(len(df))
-    # import matplotlib.pyplot as plt    
-    # plt.plot(df['close'])
-    # plt.title(f'{symbol}')
-    # plt.xlabel('Time')
-    # plt.ylabel('Price')
-    # plt.show()
     return df, symbol
 
-#get_stock_information(symbol="AMD",start_date="04/28/2023", end_date="05/25/2023")
