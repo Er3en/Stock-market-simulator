@@ -171,9 +171,9 @@ class MainWindow(QMainWindow):
             end_date_str = end_date.strftime("%m/%d/%Y") 
             start_date = end_date - timedelta(days=30)  
             start_date_str = start_date.strftime("%m/%d/%Y")
-            self.df, self.symbol = get_stock_information(symbol=f"{text}",
-                                                        start_date_str,
-                                                        end_date_str)
+            self.df, self.symbol = get_stock_information(symbol=f"{text}", 
+                                                         start_date=start_date_str,
+                                                         end_date=end_date_str)
             self.df_prev, self.symbol_prev = self.df, self.symbol 
         except Exception as e:
             self.user_label.setText(f"{str(e)}")  
