@@ -84,9 +84,11 @@ class MainWindow(QMainWindow):
         self.df, self.symbol = None, None
         self.user_logged = False
         self.user = None
-
         self.real_price_timer = QTimer()
         self.real_price = None
+        self.balance_label = None
+        self.stocks_label = None
+
         timer = QTimer(self)
         timer.timeout.connect(self.update_time_and_date)
         timer.start(300000)  # 5 minutes in milliseconds
@@ -116,15 +118,28 @@ class MainWindow(QMainWindow):
 
 
     def create_user_panel(self):
-        self.user_panel = QDockWidget("User Panel", self)
-        self.user_panel.setFeatures(QDockWidget.NoDockWidgetFeatures)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.user_panel)
+        if not self.user_logged:
+            self.user_panel = QDockWidget("User Panel", self)
+            self.user_panel.setFeatures(QDockWidget.NoDockWidgetFeatures)
+            self.addDockWidget(Qt.LeftDockWidgetArea, self.user_panel)
 
-        self.user_widget = QWidget()
-        self.user_layout = QVBoxLayout(self.user_widget)
-        self.user_label = QLabel("Welcome to the Stock Market App!")
-        self.user_layout.addWidget(self.user_label)
+            self.user_widget = QWidget()
+            self.user_layout = QVBoxLayout(self.user_widget)
+            self.user_label = QLabel("Welcome to the Stock Market App!")
+            self.user_label.setStyleSheet("font-size: 18px;")  
+            self.user_layout.addWidget(self.user_label)
+        if self.user_logged and (self.balance_label is None and self.stocks_label is None):
+            # Create QLabel widgets to display user balance and owned stocks
+            self.balance_label = QLabel("Balance: $0.00")
+            self.balance_label.setStyleSheet("font-size: 18px;")  
+            self.stocks_label = QLabel("Owned Stocks: 0")
+            self.stocks_label.setStyleSheet("font-size: 18px;")  
+            # Add the QLabel widgets to the user layout
+            self.user_layout.addWidget(self.balance_label)
+            self.user_layout.addWidget(self.stocks_label)
+
         self.user_panel.setWidget(self.user_widget)
+
 
 
     def create_central_widget(self):
@@ -146,12 +161,17 @@ class MainWindow(QMainWindow):
             self.user_layout.removeWidget(self.user_label)
             self.user_label.deleteLater()
             self.user_label = QLabel("You have been logged out")
+            self.user_label.setStyleSheet("font-size: 18px;")  
             self.user_layout.addWidget(self.user_label)
             self.user_logged = False
             self.setCentralWidget(None) 
             self.df, self.symbol = None, None
             self.user = None
-
+            self.balance_label.deleteLater()
+            self.stocks_label.deleteLater()
+            self.balance_label = None
+            self.stocks_label = None
+            
 
     def show_login_dialog(self):
         dialog = LoginDialog()
@@ -163,6 +183,8 @@ class MainWindow(QMainWindow):
                 self.user_logged = True
                 self.user_label.setText(f"Welcome, {login}!")  
                 self.create_central_widget()
+                self.create_user_panel()
+                self.balance_label.setText(f"Balance: ${str( self.user.load_balance())}")
 
 
     def update_time_and_date(self):
@@ -199,7 +221,7 @@ class MainWindow(QMainWindow):
                                                             end_date=end_date_str)
             except Exception as e:
                 self.user_label.setText(f"{str(e)}")  
-            
+            self.symbol = text
             try:
                 self.create_chart_widget()
                 self.create_button()
@@ -213,7 +235,7 @@ class MainWindow(QMainWindow):
 
                 # Start the timer with a new connection
                 self.real_price_timer.timeout.connect(lambda: self.update_price(symbol=text))
-                self.real_price_timer.start(15000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
+                self.real_price_timer.start(5000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
             except Exception as e:
                 self.user_label.setText(str(e))
 
@@ -228,6 +250,13 @@ class MainWindow(QMainWindow):
         text_input.setStyleSheet("font-size: 18px;")  # Set a larger font size for the text input box
         self.text_input = text_input
         button_layout.addWidget(text_input, alignment=Qt.AlignCenter)  # Align the text input box to the center
+
+        other_button = QPushButton('Search and display', self)
+        other_button.setMaximumWidth(200)  # Set the maximum width of the other button
+        other_button.clicked.connect(self.update_chart_data)
+        other_button.setStyleSheet("font-size: 20px;")  # Set a larger font size for the other button
+        button_layout.addWidget(other_button, alignment=Qt.AlignCenter)  # Align the button to the center
+
 
         button_widget_2 = QWidget()
         button_layout_2 = QHBoxLayout(button_widget_2)
@@ -247,12 +276,17 @@ class MainWindow(QMainWindow):
         button_layout.addStretch(1)  # Add stretch to the vertical layout to center-align the buttons
         button_layout.addWidget(button_widget_2, alignment=Qt.AlignCenter)  # Align the button widget to the center
 
-        other_button = QPushButton('Search and display', self)
-        other_button.setMaximumWidth(200)  # Set the maximum width of the other button
-        other_button.clicked.connect(self.update_chart_data)
-        other_button.setStyleSheet("font-size: 20px;")  # Set a larger font size for the other button
-        button_layout.addWidget(other_button, alignment=Qt.AlignCenter)  # Align the button to the center
+    
+        quantity_label = QLabel("Quantity:")
+        quantity_label.setStyleSheet("font-size: 18px;")  # Set a larger font size for the quantity label
+        quantity_input = QLineEdit()
+        quantity_input.setMaximumWidth(300)  # Set the maximum width of the quantity input box
+        quantity_input.setAlignment(Qt.AlignCenter)  # Center-align the quantity input box
+        quantity_input.setStyleSheet("font-size: 18px;")  # Set a larger font size for the quantity input box
+        self.quantity_input = quantity_input
 
+        button_layout.addWidget(quantity_label, alignment=Qt.AlignRight)  # Align the quantity label to the right
+        button_layout.addWidget(quantity_input, alignment=Qt.AlignRight)  # Align the quantity input to the right
         stock_price_label = QLabel("Stock Price: $0.00")  # Label to display the current stock price
         stock_price_label.setStyleSheet("font-size: 18px;")  # Set a larger font size for the stock price label
         self.stock_price_label = stock_price_label
@@ -267,12 +301,26 @@ class MainWindow(QMainWindow):
 
 
     def buy_stock(self):
-        # Logic for buying stock
-        pass
-
-
+        quantity = self.quantity_input.text()
+        if self.symbol and quantity is not None:
+            stock = self.symbol
+            ammount = int(quantity) * float(self.real_price)
+            balance = self.user.load_balance() - ammount
+            self.user.insert_new_balance(balance)
+            print(self.user.load_balance())
+            self.balance_label.setText(f"Balance: {float(self.user.load_balance())}$")    
+            #self.user.add_to_wallet(stock_name=stock,quantity=quantity)
+  
+        
     def sell_stock(self):
-        # Logic for selling stock
-        pass
-
+        quantity = self.quantity_input.text()
+        if self.symbol and quantity is not None:
+            stock = self.symbol
+            ammount = int(quantity) * float(self.real_price)
+            balance = self.user.load_balance() + ammount
+            self.user.insert_new_balance(balance)
+            print(self.user.load_balance())
+            self.balance_label.setText(f"Balance: {float(self.user.load_balance())}$")
+            #self.user.remove_from_wallet()
+      
  

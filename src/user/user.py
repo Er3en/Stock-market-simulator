@@ -11,15 +11,16 @@ class User:
         self.wallet_id = None  # Will be set after creating the wallet
 
 
-
     def set_password(self, password):
         salt = hashlib.sha256().hexdigest()
         hashed_password = pbkdf2_sha256.hash(password, salt=salt, rounds=100000)
         return hashed_password
 
+
     def verify_password(self, password):
         return pbkdf2_sha256.verify(password, self.password)
     
+
     def load_balance(self):
         conn = sqlite3.connect('src/database/users.db')
         cursor = conn.cursor()
@@ -29,8 +30,16 @@ class User:
         result = cursor.fetchone()
         conn.close()
         return  result[0]
-       
-  
+    
+ 
+    def insert_new_balance(self, balance):
+        conn = sqlite3.connect('src/database/users.db')
+        cursor = conn.cursor()
+
+        update_query = "UPDATE users SET balance = ? WHERE username = ?"
+        cursor.execute(update_query, (balance, self.username))
+        conn.commit()
+        conn.close()
 
     def create_wallet(self):
         conn = sqlite3.connect('src/database/users.db')
@@ -42,6 +51,7 @@ class User:
 
         conn.commit()
         conn.close()
+
 
     def add_to_wallet(self, stock_name, quantity):
         if self.wallet_id is None:
@@ -67,6 +77,7 @@ class User:
 
         conn.commit()
         conn.close()
+
 
     def remove_from_wallet(self, stock_name, quantity):
         if self.wallet_id is None:

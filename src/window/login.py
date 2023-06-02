@@ -17,7 +17,6 @@ def verify_password(username, stored_password, provided_password, salt):
         return False
 
 
-
 def verify_login(username, password):
     conn = sqlite3.connect('src/database/users.db')
     cursor = conn.cursor()
@@ -45,7 +44,3 @@ def print_users_table():
         print(row)
 
     conn.close()
-
-
-
-
