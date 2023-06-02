@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
 
                 # Start the timer with a new connection
                 self.real_price_timer.timeout.connect(lambda: self.update_price(symbol=text))
-                self.real_price_timer.start(5000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
+                self.real_price_timer.start(30000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
             except Exception as e:
                 self.user_label.setText(str(e))
 
@@ -307,7 +307,6 @@ class MainWindow(QMainWindow):
             ammount = int(quantity) * float(self.real_price)
             balance = self.user.load_balance() - ammount
             self.user.insert_new_balance(balance)
-            print(self.user.load_balance())
             self.balance_label.setText(f"Balance: {float(self.user.load_balance())}$")    
             #self.user.add_to_wallet(stock_name=stock,quantity=quantity)
   
@@ -319,7 +318,6 @@ class MainWindow(QMainWindow):
             ammount = int(quantity) * float(self.real_price)
             balance = self.user.load_balance() + ammount
             self.user.insert_new_balance(balance)
-            print(self.user.load_balance())
             self.balance_label.setText(f"Balance: {float(self.user.load_balance())}$")
             #self.user.remove_from_wallet()
       
