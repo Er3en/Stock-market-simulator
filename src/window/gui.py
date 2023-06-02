@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QDockWidget, QWidget, Q
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from .login import verify_login
-from ..twelvedata_api.stocks_in_time import get_stock_information
+from ..twelvedata_api.stocks_in_time import get_stock_information, get_real_time_price
 from PyQt5.QtWidgets import QPushButton
 from ..user.user import *
 import datetime
@@ -24,6 +24,7 @@ class ChartWidget(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
+
 
     def update_chart(self, df, symbol):
         self.figure.clear()
@@ -59,19 +60,21 @@ class LoginDialog(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
+
     def get_login(self):
         self.login_edit = self.login_edit.text()
         return self.login_edit
 
+
     def get_password(self):
         self.password_edit = self.password_edit.text()
+
 
     def is_verified(self):
         return verify_login(self.login_edit, self.password_edit)
 
 
 class MainWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
         self.time = None
@@ -81,6 +84,9 @@ class MainWindow(QMainWindow):
         self.df, self.symbol = None, None
         self.user_logged = False
         self.user = None
+
+        self.real_price_timer = QTimer()
+        self.real_price = None
         timer = QTimer(self)
         timer.timeout.connect(self.update_time_and_date)
         timer.start(300000)  # 5 minutes in milliseconds
@@ -89,10 +95,12 @@ class MainWindow(QMainWindow):
         self.create_menu()
         self.create_user_panel()
 
+
     def init_apperance(self):
         self.setWindowTitle("Stock Market App")
         icon = QIcon("src/assets/icon_256x256.png")
         self.setWindowIcon(icon)
+
 
     def create_menu(self):
         menubar = self.menuBar()
@@ -106,6 +114,7 @@ class MainWindow(QMainWindow):
         user_menu.addAction(login_action)
         user_menu.addAction(logout_action)
 
+
     def create_user_panel(self):
         self.user_panel = QDockWidget("User Panel", self)
         self.user_panel.setFeatures(QDockWidget.NoDockWidgetFeatures)
@@ -117,17 +126,20 @@ class MainWindow(QMainWindow):
         self.user_layout.addWidget(self.user_label)
         self.user_panel.setWidget(self.user_widget)
 
+
     def create_central_widget(self):
         self.setCentralWidget(None)  # Remove previous central widget
         if self.user_logged:
             self.create_chart_widget()
             self.create_button()
 
+
     def create_chart_widget(self):
         self.chart_widget = ChartWidget()
         if self.symbol is not None:
             self.chart_widget.update_chart(self.df, self.symbol)
             self.setCentralWidget(self.chart_widget)
+
 
     def logout(self):
         if self.user_logged:
@@ -140,6 +152,7 @@ class MainWindow(QMainWindow):
             self.df, self.symbol = None, None
             self.user = None
 
+
     def show_login_dialog(self):
         dialog = LoginDialog()
         if dialog.exec_() == QDialog.Accepted:
@@ -151,6 +164,7 @@ class MainWindow(QMainWindow):
                 self.user_label.setText(f"Welcome, {login}!")  
                 self.create_central_widget()
 
+
     def update_time_and_date(self):
         current_datetime = datetime.now()
         current_time = current_datetime.strftime("%H:%M:%S")
@@ -158,28 +172,51 @@ class MainWindow(QMainWindow):
         self.time = current_time
         self.date = current_date
 
+
     def switch_to_previous_chart(self):
         if self.symbol is not None:
             self.chart_widget.update_chart(self.df_prev, self.symbol_prev)
             self.setCentralWidget(self.chart_widget)
             self.create_button()
-       
+
+
+    def update_price(self, symbol):
+        if symbol:
+            self.real_price = get_real_time_price(symbol)
+            self.stock_price_label.setText("Stock Price: $" + str(self.real_price))
+
+
     def update_chart_data(self):
         text = self.text_input.text()
-        try: 
-            end_date = datetime.strptime(self.date, "%m/%d/%y")
-            end_date_str = end_date.strftime("%m/%d/%Y") 
-            start_date = end_date - timedelta(days=30)  
-            start_date_str = start_date.strftime("%m/%d/%Y")
-            self.df, self.symbol = get_stock_information(symbol=f"{text}", 
-                                                         start_date=start_date_str,
-                                                         end_date=end_date_str)
-            self.df_prev, self.symbol_prev = self.df, self.symbol 
-        except Exception as e:
-            self.user_label.setText(f"{str(e)}")  
+        if text:
+            try: 
+                end_date = datetime.strptime(self.date, "%m/%d/%y")
+                end_date_str = end_date.strftime("%m/%d/%Y") 
+                start_date = end_date - timedelta(days=30)  
+                start_date_str = start_date.strftime("%m/%d/%Y")
+                self.df, self.symbol = get_stock_information(symbol=f"{text}", 
+                                                            start_date=start_date_str,
+                                                            end_date=end_date_str)
+            except Exception as e:
+                self.user_label.setText(f"{str(e)}")  
+            
+            try:
+                self.create_chart_widget()
+                self.create_button()
 
-        self.create_chart_widget()
-        self.create_button()
+                if self.real_price_timer.isActive():
+                    self.update_price(symbol=text)
+                    self.real_price_timer.stop()
+                    self.real_price_timer.timeout.disconnect()
+                else:
+                    self.update_price(symbol=text)
+
+                # Start the timer with a new connection
+                self.real_price_timer.timeout.connect(lambda: self.update_price(symbol=text))
+                self.real_price_timer.start(15000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
+            except Exception as e:
+                self.user_label.setText(str(e))
+
 
     def create_button(self):
         button_widget = QWidget(self)
@@ -228,10 +265,14 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+
     def buy_stock(self):
         # Logic for buying stock
         pass
 
+
     def sell_stock(self):
         # Logic for selling stock
         pass
+
+ 
