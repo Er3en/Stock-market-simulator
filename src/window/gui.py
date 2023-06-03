@@ -171,6 +171,8 @@ class MainWindow(QMainWindow):
             self.stocks_label.deleteLater()
             self.balance_label = None
             self.stocks_label = None
+            self.real_price_timer.stop()
+            self.real_price_timer.timeout.disconnect()
             
 
     def show_login_dialog(self):
