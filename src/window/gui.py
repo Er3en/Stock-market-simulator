@@ -1,13 +1,12 @@
+import datetime
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QDockWidget, QWidget, QHBoxLayout, QVBoxLayout, QDialog, QLabel, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QPushButton
 from .login import verify_login
 from ..twelvedata_api.stocks_in_time import get_stock_information, get_real_time_price
-from PyQt5.QtWidgets import QPushButton
 from ..user.user import *
-import datetime
 from datetime import date, datetime, timedelta
-
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -91,7 +90,7 @@ class MainWindow(QMainWindow):
 
         timer = QTimer(self)
         timer.timeout.connect(self.update_time_and_date)
-        timer.start(300000)  # 5 minutes in milliseconds
+        timer.start(300000)  
 
         self.init_apperance()
         self.create_menu()
@@ -237,7 +236,7 @@ class MainWindow(QMainWindow):
 
                 # Start the timer with a new connection
                 self.real_price_timer.timeout.connect(lambda: self.update_price(symbol=text))
-                self.real_price_timer.start(30000)  # Start the timer with a timeout of 15,000 milliseconds (15 seconds)
+                self.real_price_timer.start(30000)  # Start the timer with a timeout of 30s
             except Exception as e:
                 self.user_label.setText(str(e))
 
